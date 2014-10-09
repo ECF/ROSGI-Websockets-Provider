@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: %bundle.name
+Bundle-SymbolicName: org.eclipse.ecf.provider.websockets
+Bundle-Version: 1.0.0.qualifier
+Bundle-Vendor: %bundle.provider
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Bundle-ActivationPolicy: lazy
+Bundle-Activator: org.eclipse.ecf.internal.provider.websockets.Activator
+Import-Package: org.osgi.framework
+Bundle-Localization: bundle
