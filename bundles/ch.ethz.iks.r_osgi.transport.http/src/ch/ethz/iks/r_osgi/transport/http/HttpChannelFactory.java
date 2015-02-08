@@ -23,11 +23,13 @@ import javax.net.ssl.SSLContext;
 import org.java_websocket.WebSocket;
 import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.ServerHandshake;
 import org.java_websocket.server.DefaultSSLWebSocketServerFactory;
 import org.java_websocket.server.WebSocketServer;
 import org.java_websocket.util.Base64;
+import org.osgi.service.log.LogService;
 
 import ch.ethz.iks.r_osgi.Remoting;
 import ch.ethz.iks.r_osgi.URI;
@@ -61,6 +63,15 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 		this.secure = secure;
 	}
 
+	synchronized void logError(String message, Throwable exception) {
+		Activator activator = Activator.getDefault();
+		if (activator != null) {
+			LogService logService = activator.getLogService();
+			if (logService != null) 
+				logService.log(LogService.LOG_ERROR, message, exception);
+		}
+	}
+	
 	public NetworkChannel getConnection(final ChannelEndpoint endpoint,
 			final URI endpointURI) throws IOException {
 		return new HttpChannel(endpoint, endpointURI);
@@ -77,7 +88,7 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 		try {
 			this.server.stop();
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			logError("Error in HttpChannelFactory.deactivate", e);
 		}
 		this.server = null;
 	}
@@ -111,14 +122,12 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 
 				@Override
 				public void onClose(int arg0, String arg1, boolean arg2) {
-					if (socket != null) {
-						socket.close(200);
-					}
+					closeSocket();
 				}
 
 				@Override
 				public void onError(Exception error) {
-					error.printStackTrace();
+					logError("HttpChannel.WebSocketClient.onError",error);
 				}
 
 				@Override
@@ -139,7 +148,7 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 				}
 				client.connectBlocking();
 			} catch (final Exception e) {
-				e.printStackTrace();
+				logError("Exception in setting client web socket factory",e);
 				throw new IOException("Could not connect", e);
 			}
 			this.socket = client.getConnection();
@@ -162,17 +171,24 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 			this.endpoint = endpoint;
 		}
 
-		public void close() throws IOException {
-			socket.close(200);
+		public synchronized void close() throws IOException {
+			closeSocket();
 		}
 
-		public void sendMessage(final RemoteOSGiMessage message)
+		synchronized void closeSocket() {
+			if (socket.isOpen()) 
+				socket.close(CloseFrame.NORMAL);
+		}
+		
+		public synchronized void sendMessage(final RemoteOSGiMessage message)
 				throws IOException {
-			final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-			final ObjectOutputStream out = new ObjectOutputStream(bytes);
-			message.send(out);
-			out.close();
-			socket.send(Base64.encodeBytes(bytes.toByteArray(), Base64.GZIP));
+			if (socket.isOpen()) {
+				final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+				final ObjectOutputStream out = new ObjectOutputStream(bytes);
+				message.send(out);
+				out.close();
+				socket.send(Base64.encodeBytes(bytes.toByteArray(), Base64.GZIP));
+			}
 		}
 
 		private URI uriFromSocketAddress(final String protocol,
@@ -181,15 +197,17 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 					+ addr.getPort());
 		}
 
-		public void processMessage(final String message) {
-			try {
-				final ObjectInputStream in = new ObjectInputStream(
-						new ByteArrayInputStream(Base64.decode(message)));
-				final RemoteOSGiMessage msg = RemoteOSGiMessage.parse(in);
-				in.close();
-				endpoint.receivedMessage(msg);
-			} catch (Exception e) {
-				e.printStackTrace();
+		public synchronized void processMessage(final String message) {
+			if (socket.isOpen()) {
+				try {
+					final ObjectInputStream in = new ObjectInputStream(
+							new ByteArrayInputStream(Base64.decode(message)));
+					final RemoteOSGiMessage msg = RemoteOSGiMessage.parse(in);
+					in.close();
+					endpoint.receivedMessage(msg);
+				} catch (Exception e) {
+					logError("HttpChannel.processMessage message="+message,e);
+				}
 			}
 		}
 	}
@@ -206,7 +224,7 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 					this.setWebSocketFactory(new DefaultSSLWebSocketServerFactory(
 							SSLContext.getDefault()));
 				} catch (final NoSuchAlgorithmException e) {
-					e.printStackTrace();
+					logError("WebSocketListener<init> exception in setWebSocketFactory",e);
 					throw new IOException("Could not create SSL context", e);
 				}
 			}
@@ -218,7 +236,7 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 		}
 
 		public void onError(WebSocket socket, Exception error) {
-			error.printStackTrace();
+			logError("HttpChannel.onError socket="+socket,error);
 		}
 
 		public void onMessage(WebSocket socket, String message) {

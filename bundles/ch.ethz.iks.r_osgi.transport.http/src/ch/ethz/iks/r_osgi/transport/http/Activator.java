@@ -13,17 +13,28 @@ import java.util.Hashtable;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
+import org.osgi.service.log.LogService;
+import org.osgi.util.tracker.ServiceTracker;
 
 import ch.ethz.iks.r_osgi.channels.NetworkChannelFactory;
 
 public class Activator implements BundleActivator {
 
+	private static Activator activator;
+	private static BundleContext context;
+	private ServiceTracker<LogService,LogService> logTracker;
+	
+	public static Activator getDefault() {
+		return activator;
+	}
+	
 	/**
 	 * @see org.osgi.framework.BundleActivator#start(org.osgi.framework.BundleContext
 	 *      )
 	 */
-	public void start(final BundleContext context) throws Exception {
-
+	public void start(final BundleContext ctxt) throws Exception {
+		activator = this;
+		context = ctxt;
 		final Dictionary<String, Object> properties = new Hashtable<String, Object>();
 		properties.put(NetworkChannelFactory.PROTOCOL_PROPERTY,
 				HttpChannelFactory.PROTOCOL_HTTP);
@@ -45,6 +56,15 @@ public class Activator implements BundleActivator {
 
 	}
 
+	public synchronized LogService getLogService() {
+		if (context == null) return null;
+		if (logTracker == null) {
+			logTracker = new ServiceTracker<LogService,LogService>(context,LogService.class,null);
+			logTracker.open();
+		}
+		return logTracker.getService();
+	}
+	
 	private int getProperty(final BundleContext context,
 			final String propertyName, int defaultValue) {
 		final String prop = context.getProperty(propertyName);
@@ -61,7 +81,13 @@ public class Activator implements BundleActivator {
 	/**
 	 * @see org.osgi.framework.BundleActivator#stop(org.osgi.framework.BundleContext)
 	 */
-	public void stop(final BundleContext context) throws Exception {
+	public void stop(final BundleContext ctxt) throws Exception {
+		if (logTracker != null) {
+			logTracker.close();
+			logTracker = null;
+		}
+		context = null;
+		activator = null;
 	}
 
 }
