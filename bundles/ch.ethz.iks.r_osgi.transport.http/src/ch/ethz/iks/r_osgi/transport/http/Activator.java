@@ -20,6 +20,9 @@ import ch.ethz.iks.r_osgi.channels.NetworkChannelFactory;
 
 public class Activator implements BundleActivator {
 
+	private static boolean registerHttp = new Boolean(System.getProperty("ch.ethz.iks.r_osgi.transport.registerHttp","true")).booleanValue();
+	private static boolean registerHttps = new Boolean(System.getProperty("ch.ethz.iks.r_osgi.transport.registerHttps","true")).booleanValue();
+	
 	private static Activator activator;
 	private static BundleContext context;
 	private ServiceTracker<LogService,LogService> logTracker;
@@ -38,21 +41,23 @@ public class Activator implements BundleActivator {
 		final Dictionary<String, Object> properties = new Hashtable<String, Object>();
 		properties.put(NetworkChannelFactory.PROTOCOL_PROPERTY,
 				HttpChannelFactory.PROTOCOL_HTTP);
-		context.registerService(
-				NetworkChannelFactory.class.getName(),
-				new HttpChannelFactory(getProperty(context,
-						HttpChannelFactory.HTTP_PORT_PROPERTY,
-						HttpChannelFactory.DEFAULT_HTTP_PORT), false),
-				properties);
+		if (registerHttp)
+			context.registerService(
+					NetworkChannelFactory.class.getName(),
+					new HttpChannelFactory(getProperty(context,
+							HttpChannelFactory.HTTP_PORT_PROPERTY,
+							HttpChannelFactory.DEFAULT_HTTP_PORT), false),
+					properties);
 
 		properties.put(NetworkChannelFactory.PROTOCOL_PROPERTY,
 				HttpChannelFactory.PROTOCOL_HTTPS);
-		context.registerService(
-				NetworkChannelFactory.class.getName(),
-				new HttpChannelFactory(getProperty(context,
-						HttpChannelFactory.HTTPS_PORT_PROPERTY,
-						HttpChannelFactory.DEFAULT_HTTPS_PORT), true),
-				properties);
+		if (registerHttps)
+			context.registerService(
+					NetworkChannelFactory.class.getName(),
+					new HttpChannelFactory(getProperty(context,
+							HttpChannelFactory.HTTPS_PORT_PROPERTY,
+							HttpChannelFactory.DEFAULT_HTTPS_PORT), true),
+					properties);
 
 	}
 
