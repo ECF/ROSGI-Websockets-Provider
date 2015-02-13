@@ -53,16 +53,22 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 
 	private Remoting remoting;
 
+	private final boolean listen;
 	private final int port;
 	private final boolean secure;
 
 	private WebSocketListener server;
 
 	HttpChannelFactory(final int port, final boolean secure) {
+		this(true, port, secure);
+	}
+
+	HttpChannelFactory(boolean listen, final int port, final boolean secure) {
+		this.listen = listen;
 		this.port = port;
 		this.secure = secure;
 	}
-
+	
 	synchronized void logError(String message, Throwable exception) {
 		Activator activator = Activator.getDefault();
 		if (activator != null) {
@@ -79,22 +85,26 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 
 	public void activate(final Remoting remoting) throws IOException {
 		this.remoting = remoting;
-		this.server = new WebSocketListener(port);
-		this.server.start();
+		if (listen) {
+			this.server = new WebSocketListener(port);
+			this.server.start();
+		}
 	}
 
 	public void deactivate(final Remoting remoting) throws IOException {
 		this.remoting = null;
-		try {
-			this.server.stop();
-		} catch (InterruptedException e) {
-			logError("Error in HttpChannelFactory.deactivate", e);
+		if (listen) {
+			try {
+				this.server.stop();
+			} catch (InterruptedException e) {
+				logError("Error in HttpChannelFactory.deactivate", e);
+			}
+			this.server = null;
 		}
-		this.server = null;
 	}
 
 	public int getListeningPort(final String protocol) {
-		return 0;
+		return port;
 	}
 
 	private class HttpChannel implements NetworkChannel {

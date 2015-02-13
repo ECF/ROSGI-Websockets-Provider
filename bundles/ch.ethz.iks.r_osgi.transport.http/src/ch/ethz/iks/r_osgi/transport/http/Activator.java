@@ -20,6 +20,9 @@ import ch.ethz.iks.r_osgi.channels.NetworkChannelFactory;
 
 public class Activator implements BundleActivator {
 
+	private static boolean listen = new Boolean(System.getProperty(
+			"ch.ethz.iks.r_osgi.transport.http.listen", "true"));
+
 	private static boolean registerHttp = new Boolean(System.getProperty(
 			"ch.ethz.iks.r_osgi.transport.registerHttp", "true"))
 			.booleanValue();
@@ -48,7 +51,7 @@ public class Activator implements BundleActivator {
 		if (registerHttp)
 			context.registerService(
 					NetworkChannelFactory.class.getName(),
-					new HttpChannelFactory(getProperty(context,
+					new HttpChannelFactory(listen, getProperty(context,
 							HttpChannelFactory.HTTP_PORT_PROPERTY,
 							HttpChannelFactory.DEFAULT_HTTP_PORT), false),
 					properties);
@@ -58,7 +61,7 @@ public class Activator implements BundleActivator {
 		if (registerHttps)
 			context.registerService(
 					NetworkChannelFactory.class.getName(),
-					new HttpChannelFactory(getProperty(context,
+					new HttpChannelFactory(listen, getProperty(context,
 							HttpChannelFactory.HTTPS_PORT_PROPERTY,
 							HttpChannelFactory.DEFAULT_HTTPS_PORT), true),
 					properties);
