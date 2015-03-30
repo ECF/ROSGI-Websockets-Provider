@@ -78,6 +78,15 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 		}
 	}
 	
+	synchronized void logWarning(String message, Throwable exception) {
+		Activator activator = Activator.getDefault();
+		if (activator != null) {
+			LogService logService = activator.getLogService();
+			if (logService != null) 
+				logService.log(LogService.LOG_WARNING, message, exception);
+		}
+	}
+
 	public NetworkChannel getConnection(final ChannelEndpoint endpoint,
 			final URI endpointURI) throws IOException {
 		return new HttpChannel(endpoint, endpointURI);
@@ -137,7 +146,8 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 
 				@Override
 				public void onError(Exception error) {
-					logError("HttpChannel.WebSocketClient.onError",error);
+					logWarning("WebSocketClient("+HttpChannel.this.remoteAddress+").onError",error);
+					HttpChannel.this.endpoint.dispose();
 				}
 
 				@Override
@@ -186,7 +196,7 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 		}
 
 		synchronized void closeSocket() {
-			if (socket.isOpen()) 
+			if (socket != null && socket.isOpen()) 
 				socket.close(CloseFrame.NORMAL);
 		}
 		
@@ -246,14 +256,14 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 		}
 
 		public void onError(WebSocket socket, Exception error) {
-			logError("HttpChannel.onError socket="+socket,error);
+			logWarning("WebSocketListener.onError socket="+socket,error);
+			channels.remove(socket);
 		}
 
 		public void onMessage(WebSocket socket, String message) {
 			final HttpChannel channel = channels.get(socket);
-			if (channel != null) {
+			if (channel != null) 
 				channel.processMessage(message);
-			}
 		}
 
 		public void onOpen(WebSocket socket, ClientHandshake handshake) {
