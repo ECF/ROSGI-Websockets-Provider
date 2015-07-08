@@ -23,6 +23,7 @@ import javax.net.ssl.SSLContext;
 import org.java_websocket.WebSocket;
 import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.drafts.Draft_10;
 import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.ServerHandshake;
@@ -47,6 +48,10 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 	public static final String HTTPS_PORT_PROPERTY = "ch.ethz.iks.r_osgi.transport.https.port";
 
 	public static final int DEFAULT_HTTPS_PORT = 443;
+	
+	public static final String CONNECT_TIMEOUT_PROPERTY = "ch.ethz.iks.r_osgi.transport.https.connectTimeout";
+	
+	public static final int CONNECT_TIMEOUT = Integer.valueOf(System.getProperty(CONNECT_TIMEOUT_PROPERTY,"10000")).intValue();
 
 	static final String PROTOCOL_HTTP = "http"; //$NON-NLS-1$
 	static final String PROTOCOL_HTTPS = "https"; //$NON-NLS-1$
@@ -132,45 +137,70 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 					socket.getLocalSocketAddress());
 		}
 
+		class ROSGiWebSocketClient extends WebSocketClient {
+
+			private Exception error;
+			
+			public ROSGiWebSocketClient(String serverUri) {
+				super(java.net.URI.create(serverUri), new Draft_10(), null, CONNECT_TIMEOUT);
+			}
+
+			@Override
+			public void onClose(int arg0, String arg1, boolean arg2) {
+				closeSocket();
+			}
+
+			@Override
+			public void onError(Exception error) {
+				logWarning("WebSocketClient("+HttpChannel.this.remoteAddress+").onError",error);
+				this.error = error;
+				HttpChannel.this.endpoint.dispose();
+			}
+
+			@Override
+			public void onMessage(String message) {
+				processMessage(message);
+			}
+
+			@Override
+			public void onOpen(ServerHandshake server) {
+
+			}
+
+			public void doConnect() throws Exception {
+				super.connectBlocking();
+				if (this.error != null) 
+					throw this.error;
+			}
+		}
+		
 		public HttpChannel(final ChannelEndpoint endpoint, final URI endpointURI)
 				throws IOException {
 			this.endpoint = endpoint;
 			this.remoteAddress = endpointURI;
-			final WebSocketClient client = new WebSocketClient(
-					java.net.URI.create(endpointURI.toString())) {
-
-				@Override
-				public void onClose(int arg0, String arg1, boolean arg2) {
-					closeSocket();
-				}
-
-				@Override
-				public void onError(Exception error) {
-					logWarning("WebSocketClient("+HttpChannel.this.remoteAddress+").onError",error);
-					HttpChannel.this.endpoint.dispose();
-				}
-
-				@Override
-				public void onMessage(String message) {
-					processMessage(message);
-				}
-
-				@Override
-				public void onOpen(ServerHandshake server) {
-
-				}
-
-			};
+			final ROSGiWebSocketClient client = new ROSGiWebSocketClient(endpointURI.toString());
+			
 			try {
 				if (secure) {
 					client.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(
 							SSLContext.getDefault()));
 				}
-				client.connectBlocking();
 			} catch (final Exception e) {
-				logError("Exception in setting client web socket factory",e);
-				throw new IOException("Could not connect", e);
+				String errMsg = "Exception setting SSL web socket factory";
+				logError(errMsg,e);
+				throw new IOException(errMsg,e);
 			}
+			
+			try {
+				// connect
+				client.doConnect();
+				
+			} catch (final Exception e) {
+				String errMsg = "Could not connect to target="+this.remoteAddress;
+				logError(errMsg,e);
+				throw new IOException(errMsg, e);
+			}
+			// connect succeeded
 			this.socket = client.getConnection();
 			this.localAddress = URI.create(client.getURI().toString());
 		}

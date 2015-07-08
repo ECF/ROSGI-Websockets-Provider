@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: %bundle.name
 Bundle-SymbolicName: ch.ethz.iks.r_osgi.transport.http
-Bundle-Version: 1.0.0.qualifier
+Bundle-Version: 1.0.100.qualifier
 Bundle-Vendor: %bundle.provider
 Bundle-Activator: ch.ethz.iks.r_osgi.transport.http.Activator
 Bundle-RequiredExecutionEnvironment: J2SE-1.4
@@ -11,6 +11,7 @@ Import-Package: ch.ethz.iks.r_osgi;version="1.0.0.RC4",
  ch.ethz.iks.r_osgi.messages;version="1.0.0.RC4",
  org.java_websocket;version="1.0.0",
  org.java_websocket.client;version="1.0.0",
+ org.java_websocket.drafts;version="1.0.0",
  org.java_websocket.framing;version="1.0.0",
  org.java_websocket.handshake;version="1.0.0",
  org.java_websocket.server;version="1.0.0",
