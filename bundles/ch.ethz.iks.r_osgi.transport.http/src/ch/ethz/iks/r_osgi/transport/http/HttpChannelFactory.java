@@ -23,7 +23,6 @@ import javax.net.ssl.SSLContext;
 import org.java_websocket.WebSocket;
 import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
 import org.java_websocket.client.WebSocketClient;
-import org.java_websocket.drafts.Draft_10;
 import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.ServerHandshake;
@@ -51,6 +50,7 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 	
 	public static final String CONNECT_TIMEOUT_PROPERTY = "ch.ethz.iks.r_osgi.transport.https.connectTimeout";
 	
+	// XXX currently not used...see ROSGiWebSocketClient constructor
 	public static final int CONNECT_TIMEOUT = Integer.valueOf(System.getProperty(CONNECT_TIMEOUT_PROPERTY,"10000")).intValue();
 
 	static final String PROTOCOL_HTTP = "http"; //$NON-NLS-1$
@@ -141,8 +141,15 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 
 			private Exception error;
 			
+			// XXX note that eventually (after updating to new version
+			// of java_websocket.WebSocketClient, that this super constructor 
+			// can be used to allow client configuration of connect timeout
+			//
+			// super(java.net.URI.create(serverUri), new Draft_10(), null, CONNECT_TIMEOUT);
+		    // 
+
 			public ROSGiWebSocketClient(String serverUri) {
-				super(java.net.URI.create(serverUri), new Draft_10(), null, CONNECT_TIMEOUT);
+				super(java.net.URI.create(serverUri));
 			}
 
 			@Override
