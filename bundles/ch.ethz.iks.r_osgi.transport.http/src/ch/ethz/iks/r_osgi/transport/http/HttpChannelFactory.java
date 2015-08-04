@@ -74,24 +74,42 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 		this.secure = secure;
 	}
 	
-	synchronized void logError(String message, Throwable exception) {
+	private LogService getLogService() {
 		Activator activator = Activator.getDefault();
-		if (activator != null) {
-			LogService logService = activator.getLogService();
-			if (logService != null) 
-				logService.log(LogService.LOG_ERROR, message, exception);
-		}
+		return (activator == null)?null:activator.getLogService();
+	}
+	
+	synchronized void logError(String message, Throwable exception) {
+		LogService logService = getLogService();
+		if (logService != null) 
+			logService.log(LogService.LOG_ERROR, message, exception);
 	}
 	
 	synchronized void logWarning(String message, Throwable exception) {
-		Activator activator = Activator.getDefault();
-		if (activator != null) {
-			LogService logService = activator.getLogService();
-			if (logService != null) 
-				logService.log(LogService.LOG_WARNING, message, exception);
-		}
+		LogService logService = getLogService();
+		if (logService != null) 
+			logService.log(LogService.LOG_WARNING, message, exception);
 	}
 
+	private long startTime;
+	
+	public static final boolean TRACE_TIME = new Boolean(
+			System.getProperty("ch.ethz.iks.r_osgi.transport.http.traceMarshallingTime", "false")).booleanValue();
+
+	void startTiming(String message) {
+		if (TRACE_TIME) {
+			startTime = System.currentTimeMillis();
+			System.out.println("TIMING.START;"+(message==null?"":message)+";startTime="+startTime);
+		}
+	}
+	
+	void stopTiming(String message) {
+		if (TRACE_TIME) {
+			System.out.println("TIMING.END;"+(message==null?"":message)+";duration="+(System.currentTimeMillis()-startTime));
+			startTime = 0;
+		}
+	}
+	
 	public NetworkChannel getConnection(final ChannelEndpoint endpoint,
 			final URI endpointURI) throws IOException {
 		return new HttpChannel(endpoint, endpointURI);
@@ -242,9 +260,16 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 			if (socket.isOpen()) {
 				final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 				final ObjectOutputStream out = new ObjectOutputStream(bytes);
+				startTiming("message serialization");
 				message.send(out);
+				stopTiming("message serialization");
 				out.close();
-				socket.send(Base64.encodeBytes(bytes.toByteArray(), Base64.GZIP));
+				startTiming("base64encoding byteslength="+bytes.size());
+				String base64String = Base64.encodeBytes(bytes.toByteArray(), Base64.GZIP);
+				stopTiming("base64encoding stringLength="+base64String.length());
+				startTiming("socket send");
+				socket.send(base64String);
+				stopTiming("socket send");
 			}
 		}
 
@@ -257,9 +282,14 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 		public synchronized void processMessage(final String message) {
 			if (socket.isOpen()) {
 				try {
+					startTiming("base64decode message length="+message.length());
+					byte[] base64decoded = Base64.decode(message);
+					stopTiming("base64decode bytesDecoded="+base64decoded.length);
 					final ObjectInputStream in = new ObjectInputStream(
-							new ByteArrayInputStream(Base64.decode(message)));
+							new ByteArrayInputStream(base64decoded));
+					startTiming("RemoteOSGiMessage.parse");
 					final RemoteOSGiMessage msg = RemoteOSGiMessage.parse(in);
+					stopTiming("RemoteOSGiMessage.parse");
 					in.close();
 					endpoint.receivedMessage(msg);
 				} catch (Exception e) {
