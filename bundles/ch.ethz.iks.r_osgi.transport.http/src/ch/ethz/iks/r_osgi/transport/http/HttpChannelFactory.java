@@ -114,7 +114,7 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 		if (TRACE_TIME) {
 			StringBuffer buf = new StringBuffer("TIMING.END;");
 			buf.append((message==null?"":message));
-			buf.append(";duration=").append((System.currentTimeMillis()-startTime));
+			buf.append(";duration(ms)=").append((System.currentTimeMillis()-startTime));
 			LogService logService = getLogService();
 			if (logService != null)
 				logService.log(LogService.LOG_INFO, buf.toString());
