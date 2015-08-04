@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: %bundle.name
 Bundle-SymbolicName: ch.ethz.iks.r_osgi.transport.http
-Bundle-Version: 1.0.100.qualifier
+Bundle-Version: 1.0.200.qualifier
 Bundle-Vendor: %bundle.provider
 Bundle-Activator: ch.ethz.iks.r_osgi.transport.http.Activator
 Bundle-RequiredExecutionEnvironment: J2SE-1.5
