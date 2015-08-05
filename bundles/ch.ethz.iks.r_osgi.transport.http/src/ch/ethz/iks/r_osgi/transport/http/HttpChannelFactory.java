@@ -14,7 +14,10 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,6 +56,8 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 	// XXX currently not used...see ROSGiWebSocketClient constructor
 	public static final int CONNECT_TIMEOUT = Integer.valueOf(System.getProperty(CONNECT_TIMEOUT_PROPERTY,"10000")).intValue();
 
+	public static final boolean USE_BYTE_BUFFER = new Boolean(System.getProperty("ch.ethz.iks.r_osgi.transport.http.useByteBuffer","false")).booleanValue();
+	
 	static final String PROTOCOL_HTTP = "http"; //$NON-NLS-1$
 	static final String PROTOCOL_HTTPS = "https"; //$NON-NLS-1$
 
@@ -93,17 +98,32 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 
 	private long startTime;
 	
-	public static final boolean TRACE_TIME = new Boolean(
-			System.getProperty("ch.ethz.iks.r_osgi.transport.http.traceMarshallingTime", "false")).booleanValue();
+	public static final String TRACE_TIME_PROP = System.getProperty("ch.ethz.iks.r_osgi.transport.http.traceMarshallingTime");
 
+	private static boolean TRACE_TIME = false;
+	private static boolean USE_LOG_SERVICE = true;
+	
+	static {
+		if (TRACE_TIME_PROP != null) {
+			if (TRACE_TIME_PROP.equalsIgnoreCase("logservice") || TRACE_TIME_PROP.equalsIgnoreCase("true")) {
+				TRACE_TIME = true;
+			} else if (TRACE_TIME_PROP.equalsIgnoreCase("systemout")) {
+				TRACE_TIME = true;
+				USE_LOG_SERVICE = false;
+			}
+		}
+	}
+	
+	private static final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSSZ");
+	
 	void startTiming(String message) {
 		if (TRACE_TIME) {
 			startTime = System.currentTimeMillis();
 			StringBuffer buf = new StringBuffer("TIMING.START;");
+			buf.append(sdf.format(new Date(startTime))).append(";");
 			buf.append((message==null?"":message));
-			buf.append(";startTime=").append(startTime);
 			LogService logService = getLogService();
-			if (logService != null)
+			if (logService != null && USE_LOG_SERVICE)
 				logService.log(LogService.LOG_INFO, buf.toString());
 			else 
 				System.out.println(buf.toString());
@@ -113,10 +133,11 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 	void stopTiming(String message) {
 		if (TRACE_TIME) {
 			StringBuffer buf = new StringBuffer("TIMING.END;");
+			buf.append(sdf.format(new Date(startTime))).append(";");
 			buf.append((message==null?"":message));
 			buf.append(";duration(ms)=").append((System.currentTimeMillis()-startTime));
 			LogService logService = getLogService();
-			if (logService != null)
+			if (logService != null && USE_LOG_SERVICE)
 				logService.log(LogService.LOG_INFO, buf.toString());
 			else 
 				System.out.println(buf.toString());
@@ -202,6 +223,11 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 			}
 
 			@Override
+			public void onMessage(ByteBuffer bytes) {
+				processMessage(bytes);
+			}
+			
+			@Override
 			public void onOpen(ServerHandshake server) {
 
 			}
@@ -274,16 +300,22 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 			if (socket.isOpen()) {
 				final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 				final ObjectOutputStream out = new ObjectOutputStream(bytes);
-				startTiming("message serialization");
+				startTiming("serialization funcId="+message.getFuncID()+";xid="+message.getXID());
 				message.send(out);
-				stopTiming("message serialization");
 				out.close();
-				startTiming("base64encoding byteslength="+bytes.size());
-				String base64String = Base64.encodeBytes(bytes.toByteArray(), Base64.GZIP);
-				stopTiming("base64encoding stringLength="+base64String.length());
-				startTiming("socket send");
-				socket.send(base64String);
-				stopTiming("socket send");
+				stopTiming("serialization  funcId="+message.getFuncID()+";xid="+message.getXID());
+				if (!USE_BYTE_BUFFER) {
+					startTiming("base64encoding byteslength="+bytes.size());
+					String base64String = Base64.encodeBytes(bytes.toByteArray(), Base64.GZIP);
+					stopTiming("base64encoding stringLength="+base64String.length());
+					startTiming("socket send");
+					socket.send(base64String);
+					stopTiming("socket send");
+				} else {
+					startTiming("socket send");
+					socket.send(ByteBuffer.wrap(bytes.toByteArray()));
+					stopTiming("socket send");
+				}
 			}
 		}
 
@@ -303,14 +335,32 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 							new ByteArrayInputStream(base64decoded));
 					startTiming("RemoteOSGiMessage.parse");
 					final RemoteOSGiMessage msg = RemoteOSGiMessage.parse(in);
-					stopTiming("RemoteOSGiMessage.parse");
 					in.close();
+					stopTiming("RemoteOSGiMessage.parse funcId="+msg.getFuncID()+";xid="+msg.getXID());
 					endpoint.receivedMessage(msg);
 				} catch (Exception e) {
-					logError("HttpChannel.processMessage message="+message,e);
+					logError("HttpChannel.processMessage",e);
 				}
 			}
 		}
+		
+		public synchronized void processMessage(final ByteBuffer bytes) {
+			if (socket.isOpen()) {
+				try {
+					if (bytes.hasArray()) {
+						final ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bytes.array()));
+						startTiming("RemoteOSGiMessage.parse");
+						final RemoteOSGiMessage msg = RemoteOSGiMessage.parse(in);
+						in.close();
+						stopTiming("RemoteOSGiMessage.parse funcId=" + msg.getFuncID() + ";xid=" + msg.getXID());
+						endpoint.receivedMessage(msg);
+					} else throw new IllegalArgumentException("processMessage bytes argument does not contain an array");
+				} catch (Exception e) {
+					logError("HttpChannel.processMessage message",e);
+				}
+			}
+		}
+
 	}
 
 	private class WebSocketListener extends WebSocketServer {
@@ -345,6 +395,12 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 			final HttpChannel channel = channels.get(socket);
 			if (channel != null) 
 				channel.processMessage(message);
+		}
+
+		public void onMessage(WebSocket socket, ByteBuffer bytes) {
+			final HttpChannel channel = channels.get(socket);
+			if (channel != null) 
+				channel.processMessage(bytes);
 		}
 
 		public void onOpen(WebSocket socket, ClientHandshake handshake) {
