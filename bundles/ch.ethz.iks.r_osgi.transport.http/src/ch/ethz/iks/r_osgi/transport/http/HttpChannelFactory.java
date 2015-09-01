@@ -367,11 +367,9 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 						}
 					}
 				} catch (Exception e) {
-					System.out.println("Exception in ping thread");
-					e.printStackTrace();
+					logWarning("Exception in HttpChannel ping thread.  Disconnecting", e);
 					HttpChannel.this.endpoint.dispose();
 				}
-				System.out.println("PingThread exiting");
 			}
 		}
 
