@@ -8,11 +8,16 @@
  ******************************************************************************/
 package ch.ethz.iks.r_osgi.transport.http;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
+import org.eclipse.ecf.core.util.IClassResolver;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Filter;
 import org.osgi.service.log.LogService;
 import org.osgi.util.tracker.ServiceTracker;
 
@@ -20,6 +25,10 @@ import ch.ethz.iks.r_osgi.channels.NetworkChannelFactory;
 
 public class Activator implements BundleActivator {
 
+	private static final String CLASS_RESOLVER_PROP = "ch.ethz.iks.r_osgi.transport.http.classResolverProtocol";
+	private static final String CLASS_RESOLVER_FILTER_PREFIX = "(&(objectClass=org.eclipse.ecf.core.util.IClassResolver)("+CLASS_RESOLVER_PROP+"=";
+	private static final String CLASS_RESOLVER_FILTER_SUFFIX = "))";
+	
 	private static boolean listen = new Boolean(System.getProperty(
 			"ch.ethz.iks.r_osgi.transport.http.listen", "true"));
 
@@ -92,6 +101,22 @@ public class Activator implements BundleActivator {
 		return defaultValue;
 	}
 
+	public ObjectInputStream createOIS(String protocol, InputStream ins) throws IOException {
+		if (protocol == null)
+			return new ObjectInputStream(ins);
+		try {
+			Filter filter = context.createFilter(CLASS_RESOLVER_FILTER_PREFIX+protocol+CLASS_RESOLVER_FILTER_SUFFIX);
+			ServiceTracker<IClassResolver,IClassResolver> st = new ServiceTracker<IClassResolver,IClassResolver>(context, filter, null);
+			st.open();
+			IClassResolver resolver = st.getService();
+			st.close();
+			if (resolver != null)
+				return new ClassResolverObjectInputStream(resolver, ins);
+			else return new ObjectInputStream(ins);
+		} catch (Throwable t) {
+			return new ObjectInputStream(ins);
+		}
+	}
 	/**
 	 * @see org.osgi.framework.BundleActivator#stop(org.osgi.framework.BundleContext)
 	 */

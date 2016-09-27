@@ -401,12 +401,13 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 		}
 
 		public synchronized void processMessage(final String message) {
-			if (isConnected()) {
+			Activator a = Activator.getDefault();
+			if (isConnected() && a != null) {
 				try {
 					startTiming("base64decode message length=" + message.length());
 					byte[] base64decoded = Base64.decode(message);
 					stopTiming("base64decode bytesDecoded=" + base64decoded.length);
-					final ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(base64decoded));
+					final ObjectInputStream in = a.createOIS(this.localAddress.getScheme(), new ByteArrayInputStream(base64decoded));
 					startTiming("RemoteOSGiMessage.parse");
 					final RemoteOSGiMessage msg = RemoteOSGiMessage.parse(in);
 					in.close();
