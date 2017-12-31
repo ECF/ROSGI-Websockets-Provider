@@ -23,10 +23,11 @@ import java.util.Map;
 import java.util.Random;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 
 import org.java_websocket.WebSocket;
-import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.exceptions.InvalidDataException;
 import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.framing.Framedata;
 import org.java_websocket.framing.FramedataImpl1;
@@ -81,6 +82,10 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 		public Ping() {
 			super(Framedata.Opcode.PING);
 			setFin(true);
+		}
+
+		@Override
+		public void isValid() throws InvalidDataException {
 		}
 	}
 
@@ -268,7 +273,9 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 
 			try {
 				if (secure) {
-					client.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(SSLContext.getDefault()));
+					SSLContext context = SSLContext.getDefault();
+					SSLSocketFactory sf = context.getSocketFactory();
+					client.setSocket(sf.createSocket());
 				}
 			} catch (final Exception e) {
 				String errMsg = "Exception setting SSL web socket factory";
@@ -383,7 +390,8 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 				stopTiming("serialization  funcId=" + message.getFuncID() + ";xid=" + message.getXID());
 				if (!USE_BYTE_BUFFER) {
 					startTiming("base64encoding byteslength=" + bytes.size());
-					String base64String = Base64.encodeBytes(bytes.toByteArray(), Base64.GZIP);
+					byte[] b = bytes.toByteArray();
+					String base64String = Base64.encodeBytes(b, 0, b.length, Base64.GZIP);
 					stopTiming("base64encoding stringLength=" + base64String.length());
 					startTiming("socket send");
 					socket.send(base64String);
@@ -486,6 +494,10 @@ public class HttpChannelFactory implements NetworkChannelFactory {
 			final HttpChannel channel = new HttpChannel(socket);
 			remoting.createEndpoint(channel);
 			channels.put(socket, channel);
+		}
+
+		@Override
+		public void onStart() {
 		}
 	}
 
