@@ -1,4 +1,4 @@
-Websockets
+ROSGI Websockets Provider
 ==========
 
-Remote Service Provider based upon Websockets
+Extension for ROSGi Remote Service Provider that allows websockets to be used as transport
