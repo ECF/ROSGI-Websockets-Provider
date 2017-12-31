@@ -5,6 +5,7 @@
   <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+
   <name>ROSGI Websockets Provider</name>
   <url>https://www.eclipse.org/ecf/</url>
 
