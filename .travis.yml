@@ -8,7 +8,6 @@
 
 language: java
 
-
 jdk:
   - oraclejdk8
 
