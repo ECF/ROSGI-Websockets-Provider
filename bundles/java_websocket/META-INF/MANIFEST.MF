@@ -2,7 +2,8 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Java Websocket
 Bundle-SymbolicName: org.java_websocket
-Bundle-Version: 1.3.7.qualifier
+Automatic-Module-Name: org.java_websocket
+Bundle-Version: 1.3.100.qualifier
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Export-Package: org.java_websocket;version="1.0.0";
   uses:="org.java_websocket.drafts,
