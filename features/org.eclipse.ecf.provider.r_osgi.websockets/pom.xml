@@ -10,4 +10,5 @@
   </parent>
   <artifactId>org.eclipse.ecf.provider.r_osgi.websockets</artifactId>
   <packaging>eclipse-feature</packaging>
+  <version>1.0.1-SNAPSHOT</version>
 </project>
