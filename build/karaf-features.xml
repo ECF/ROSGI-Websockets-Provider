@@ -3,10 +3,9 @@
 
     <repository>http://download.eclipse.org/rt/ecf/RELEASE/site.p2/karaf-features.xml</repository>
 
-	<feature name="ecf-remoteservices-rosgi-ws" version="1.1.0"
+	<feature name="ecf-rs-distribution-rosgi-ws" version="1.1.0"
 		description="ECF ROSGi Distribution Provider Websockets Support. See https://github.com/ECF/JaxRSProviders">
-		<feature>ecf-rs-rsa</feature>
-		<feature>ecf-rs-console</feature>
+		<feature>ecf-rs-sdk</feature>
 		<bundle>mvn:org.eclipse.ecf/org.objectweb.asm</bundle>
 		<feature>ecf-rs-distribution-rosgi</feature>
 		<bundle>https://raw.githubusercontent.com/ECF/ROSGI-Websockets-Provider/master/build/plugins/org.java_websocket_1.3.100.201803041256.jar
