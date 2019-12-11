@@ -8,9 +8,9 @@
 		<feature>ecf-rs-sdk</feature>
 		<bundle>mvn:org.eclipse.ecf/org.objectweb.asm</bundle>
 		<feature>ecf-rs-distribution-rosgi</feature>
-		<bundle>https://raw.githubusercontent.com/ECF/ROSGI-Websockets-Provider/master/build/plugins/org.java_websocket_1.3.100.201803041256.jar
+		<bundle>https://raw.githubusercontent.com/ECF/ROSGI-Websockets-Provider/master/build/plugins/org.java_websocket_1.3.100.201912101956.jar
 		</bundle>
-		<bundle>https://raw.githubusercontent.com/ECF/ROSGI-Websockets-Provider/master/build/plugins/ch.ethz.iks.r_osgi.transport.http_1.1.100.201803041256.jar
+		<bundle>https://raw.githubusercontent.com/ECF/ROSGI-Websockets-Provider/master/build/plugins/ch.ethz.iks.r_osgi.transport.http_1.1.100.201912101956.jar
 		</bundle>
 	</feature>
 </features>
