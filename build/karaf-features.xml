@@ -1,6 +1,8 @@
 <features xmlns="http://karaf.apache.org/xmlns/features/v1.2.0"
 	name="ecf-remoteservices-rosgi-ws">
-
+	
+	<repository>http://download.eclipse.org/rt/ecf/RELEASE/site.p2/karaf-features.xml</repository>
+	
 	<feature name="ecf-rs-distribution-rosgi-ws" version="1.1.0"
 		description="ECF ROSGi Distribution Provider Websockets Support. See https://github.com/ECF/JaxRSProviders">
 		<feature>ecf-rs-sdk</feature>
