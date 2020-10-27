@@ -10,6 +10,6 @@
     <relativePath>../..</relativePath>
   </parent>
   <artifactId>org.java_websocket</artifactId>
-  <version>1.4.0-SNAPSHOT</version>
+  <version>1.4.1-SNAPSHOT</version>
   <packaging>eclipse-plugin</packaging>
 </project>
