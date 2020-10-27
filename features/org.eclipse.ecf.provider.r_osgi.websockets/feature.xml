@@ -2,7 +2,7 @@
 <feature
       id="org.eclipse.ecf.provider.r_osgi.websockets"
       label="ECF R_OSGi Remote Service Provider Websockets Transport"
-      version="1.2.0.qualifier"
+      version="1.2.1.qualifier"
       provider-name="Eclipse.org - ECF">
 
    <description url="https://github.com/ECF/">

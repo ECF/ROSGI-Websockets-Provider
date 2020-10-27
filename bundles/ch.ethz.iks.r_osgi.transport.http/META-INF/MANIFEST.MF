@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: %bundle.name
 Bundle-SymbolicName: ch.ethz.iks.r_osgi.transport.http
 Automatic-Module-Name: ch.ethz.iks.r_osgi.transport.http
-Bundle-Version: 1.2.0.qualifier
+Bundle-Version: 1.2.1.qualifier
 Bundle-Vendor: %bundle.provider
 Bundle-Activator: ch.ethz.iks.r_osgi.transport.http.Activator
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
@@ -17,4 +17,4 @@ Import-Package: ch.ethz.iks.r_osgi;version="1.0.0.RC4",
 Bundle-Localization: bundle
 Bundle-ActivationPolicy: lazy
 Require-Bundle: org.eclipse.ecf;bundle-version="[3.0.0,4.0.0)",
- org.java_websocket;bundle-version="1.3.0"
+ org.java_websocket;bundle-version="1.4.0"
